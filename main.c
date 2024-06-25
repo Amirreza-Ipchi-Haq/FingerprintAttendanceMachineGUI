@@ -2,7 +2,7 @@
 #include"cstrcal.h"
 #include<time.h>
 char *port=0,isSerialOpen=0,isTempWindowOpen=0;
-GtkWidget *window,*entry,*tempWindow,*(button[10]),*(spinbutton[6]);
+GtkWidget *window,*entry,*tempWindow,*(button[12]),*(spinbutton[6]);
 void enable(char condition){
 	gtk_widget_set_sensitive(button[1],condition),
 	gtk_widget_set_sensitive(button[2],condition),
@@ -12,7 +12,9 @@ void enable(char condition){
 	gtk_widget_set_sensitive(button[6],condition),
 	gtk_widget_set_sensitive(button[7],condition),
 	gtk_widget_set_sensitive(button[8],condition),
-	gtk_widget_set_sensitive(button[9],condition);
+	gtk_widget_set_sensitive(button[9],condition),
+	gtk_widget_set_sensitive(button[10],condition),
+	gtk_widget_set_sensitive(button[11],condition);
 	return;
 }
 #ifdef _WIN32
@@ -306,7 +308,7 @@ static void changeTime(GtkWidget *widget,gpointer data){
 		gtk_button_new_with_label("Set time"),
 		gtk_button_new_with_label("Set system time")
 	};
-	spinbutton[0]=gtk_spin_button_new(gtk_adjustment_new(0,0,1000000,1,1,1),1,0),
+	spinbutton[0]=gtk_spin_button_new(gtk_adjustment_new(1970,1970,1000000,1,1,1),1,0),
 	spinbutton[1]=gtk_spin_button_new(gtk_adjustment_new(1,1,13,1,1,1),1,0),
 	spinbutton[2]=gtk_spin_button_new(gtk_adjustment_new(1,1,32,1,1,1),1,0),
 	spinbutton[3]=gtk_spin_button_new(gtk_adjustment_new(0,0,24,1,1,1),1,0),
@@ -334,6 +336,67 @@ static void changeTime(GtkWidget *widget,gpointer data){
 	gtk_window_present(GTK_WINDOW(tempWindow));
 	return;
 }
+static void attendanceTime0(GtkWidget *widget,gpointer data){
+	int n=gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(data));
+	char s[11],*s0;
+	writeSerial("attendance time"),free(readSerial()),sprintf(s,"%i",n),writeSerial(s),s0=readSerial();
+	GtkWidget *dialog=gtk_message_dialog_new(GTK_WINDOW(window),GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_INFO,GTK_BUTTONS_NONE,s0);
+	free(s0),gtk_widget_show(dialog);
+	return;
+}
+static void attendanceTime(GtkWidget *widget,gpointer data){
+	int n;
+	{
+		writeSerial("saved fingerprints");
+		char *s=readSerial(),tmp[3][12];
+		sscanf(s,"%s%s%s%i",tmp[0],tmp[1],tmp[2],&n),free(s);
+	}
+	GtkWidget *box=gtk_box_new(GTK_ORIENTATION_VERTICAL,0),*label=gtk_label_new("Fingerprint ID"),*tempSpinbutton=gtk_spin_button_new(gtk_adjustment_new(1,1,n+1,1,1,1),1,0),*tempButton=gtk_button_new_with_label("Get data");
+	initTempWindow("Attendance time"),
+	gtk_widget_set_halign(box,GTK_ALIGN_CENTER),
+	gtk_widget_set_valign(box,GTK_ALIGN_CENTER),
+	g_signal_connect(tempButton,"clicked",G_CALLBACK(attendanceTime0),tempSpinbutton),
+	gtk_window_set_child(GTK_WINDOW(tempWindow),box),
+	gtk_box_append(GTK_BOX(box),label),
+	gtk_box_append(GTK_BOX(box),tempSpinbutton),
+	gtk_box_append(GTK_BOX(box),tempButton),
+	gtk_window_present(GTK_WINDOW(tempWindow));
+	return;
+}
+static void resetAttendance1(GtkDialog *dialog,gint responseID, gpointer data){
+	if(responseID==GTK_RESPONSE_YES){
+		int n=gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(data));
+		char s[11];
+		writeSerial("reset attendance"),free(readSerial()),sprintf(s,"%i",n),writeSerial(s),free(readSerial());
+	}
+	gtk_window_destroy(GTK_WINDOW(dialog));
+	return;
+}
+static void resetAttendance0(GtkWidget *widget,gpointer data){
+	GtkWidget *dialog=gtk_message_dialog_new(GTK_WINDOW(window),GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_WARNING,GTK_BUTTONS_YES_NO,"Are you sure you want to reset the specified user's attendance time? The time will be reset.");
+	g_signal_connect(dialog,"response",G_CALLBACK(resetAttendance1),data),
+	gtk_widget_show(dialog);
+	return;
+}
+static void resetAttendance(GtkWidget *widget,gpointer data){
+	int n;
+	{
+		writeSerial("saved fingerprints");
+		char *s=readSerial(),tmp[3][12];
+		sscanf(s,"%s%s%s%i",tmp[0],tmp[1],tmp[2],&n),free(s);
+	}
+	GtkWidget *box=gtk_box_new(GTK_ORIENTATION_VERTICAL,0),*label=gtk_label_new("Fingerprint ID"),*tempSpinbutton=gtk_spin_button_new(gtk_adjustment_new(1,1,n+1,1,1,1),1,0),*tempButton=gtk_button_new_with_label("Reset data");
+	initTempWindow("Reset attendance time"),
+	gtk_widget_set_halign(box,GTK_ALIGN_CENTER),
+	gtk_widget_set_valign(box,GTK_ALIGN_CENTER),
+	g_signal_connect(tempButton,"clicked",G_CALLBACK(resetAttendance0),tempSpinbutton),
+	gtk_window_set_child(GTK_WINDOW(tempWindow),box),
+	gtk_box_append(GTK_BOX(box),label),
+	gtk_box_append(GTK_BOX(box),tempSpinbutton),
+	gtk_box_append(GTK_BOX(box),tempButton),
+	gtk_window_present(GTK_WINDOW(tempWindow));
+	return;
+}
 static void terminate(GtkWidget *widget,gpointer data){
 	error();
 	return;
@@ -356,6 +419,8 @@ static void activate(GtkApplication *app,gpointer userData){
 	button[7]=gtk_button_new_with_label("Show saved fingerprints"),
 	button[8]=gtk_button_new_with_label("Show log"),
 	button[9]=gtk_button_new_with_label("Change time"),
+	button[10]=gtk_button_new_with_label("Show attendance time"),
+	button[11]=gtk_button_new_with_label("Reset attendance time"),
 	g_signal_connect(button[0],"clicked",G_CALLBACK(connect0),NULL),
 	g_signal_connect(button[1],"clicked",G_CALLBACK(attendeeList),NULL),
 	g_signal_connect(button[2],"clicked",G_CALLBACK(clearLog),NULL),
@@ -366,13 +431,15 @@ static void activate(GtkApplication *app,gpointer userData){
 	g_signal_connect(button[7],"clicked",G_CALLBACK(savedFingerprints),NULL),
 	g_signal_connect(button[8],"clicked",G_CALLBACK(showLog),NULL),
 	g_signal_connect(button[9],"clicked",G_CALLBACK(changeTime),NULL),
+	g_signal_connect(button[10],"clicked",G_CALLBACK(attendanceTime),NULL),
+	g_signal_connect(button[11],"clicked",G_CALLBACK(resetAttendance),NULL),
 	enable(0),
 	gtk_widget_set_halign(grid,GTK_ALIGN_CENTER),
 	gtk_widget_set_valign(grid,GTK_ALIGN_CENTER),
 	gtk_window_set_child(GTK_WINDOW(window),grid),
-	gtk_grid_attach(GTK_GRID(grid),entry,0,0,2,1),
-	gtk_grid_attach(GTK_GRID(grid),button[0],2,0,1,1),
-	gtk_grid_attach(GTK_GRID(grid),space,0,1,3,1),
+	gtk_grid_attach(GTK_GRID(grid),entry,0,0,3,1),
+	gtk_grid_attach(GTK_GRID(grid),button[0],3,0,1,1),
+	gtk_grid_attach(GTK_GRID(grid),space,0,1,4,1),
 	gtk_grid_attach(GTK_GRID(grid),button[1],0,2,1,1),
 	gtk_grid_attach(GTK_GRID(grid),button[2],1,2,1,1),
 	gtk_grid_attach(GTK_GRID(grid),button[3],2,2,1,1),
@@ -382,6 +449,8 @@ static void activate(GtkApplication *app,gpointer userData){
 	gtk_grid_attach(GTK_GRID(grid),button[7],0,4,1,1),
 	gtk_grid_attach(GTK_GRID(grid),button[8],1,4,1,1),
 	gtk_grid_attach(GTK_GRID(grid),button[9],2,4,1,1),
+	gtk_grid_attach(GTK_GRID(grid),button[10],3,2,1,1),
+	gtk_grid_attach(GTK_GRID(grid),button[11],3,3,1,1),
 	gtk_window_present(GTK_WINDOW(window));
 	return;
 }
