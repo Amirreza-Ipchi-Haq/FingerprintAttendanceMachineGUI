@@ -211,7 +211,7 @@ static void dst(GtkWidget *widget,gpointer data){
 }
 static void eraseFingerprints0(GtkDialog *dialog,gint responseID, gpointer data){
 	if(responseID==GTK_RESPONSE_YES)
-		writeSerial("erase fingerprints"),SLEEP(10000),free(readSerial()),error();
+		writeSerial("erase fingerprints"),SLEEP(5000),free(readSerial());
 	gtk_window_destroy(GTK_WINDOW(dialog));
 	return;
 }
@@ -223,7 +223,7 @@ static void eraseFingerprints(GtkWidget *widget,gpointer data){
 }
 static void format0(GtkDialog *dialog,gint responseID, gpointer data){
 	if(responseID==GTK_RESPONSE_YES)
-		writeSerial("format"),SLEEP(25000),free(readSerial()),error(),exit(0);
+		writeSerial("format"),SLEEP(10000),free(readSerial()),error(),exit(0);
 	gtk_window_destroy(GTK_WINDOW(dialog));
 	return;
 }
@@ -233,16 +233,57 @@ static void format(GtkWidget *widget,gpointer data){
 	gtk_widget_show(dialog);
 	return;
 }
-static void resetData0(GtkDialog *dialog,gint responseID, gpointer data){
+static void resetData3(GtkDialog *dialog,gint responseID, gpointer data){
 	if(responseID==GTK_RESPONSE_YES)
-		writeSerial("reset data"),free(readSerial());
+		writeSerial("reset data"),free(readSerial()),writeSerial("0"),free(readSerial());
 	gtk_window_destroy(GTK_WINDOW(dialog));
 	return;
 }
-static void resetData(GtkWidget *widget,gpointer data){
-	GtkWidget *dialog=gtk_message_dialog_new(GTK_WINDOW(window),GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_WARNING,GTK_BUTTONS_YES_NO,"Do you really want to reset data? Entrances & exits would reset.");
-	g_signal_connect(dialog,"response",G_CALLBACK(resetData0),NULL),
+static void resetData2(GtkWidget *widget,gpointer data){
+	GtkWidget *dialog=gtk_message_dialog_new(GTK_WINDOW(tempWindow),GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_WARNING,GTK_BUTTONS_YES_NO,"Do you really want to reset all users' data? Entrances & exits would reset.");
+	g_signal_connect(dialog,"response",G_CALLBACK(resetData3),NULL),
 	gtk_widget_show(dialog);
+	return;
+}
+static void resetData1(GtkDialog *dialog,gint responseID, gpointer data){
+	if(responseID==GTK_RESPONSE_YES){
+		int n=gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(data));
+		char s[11];
+		writeSerial("reset data"),free(readSerial()),sprintf(s,"%i",n),writeSerial(s),free(readSerial());
+	}
+	gtk_window_destroy(GTK_WINDOW(dialog));
+	return;
+}
+static void resetData0(GtkWidget *widget,gpointer data){
+	GtkWidget *dialog=gtk_message_dialog_new(GTK_WINDOW(tempWindow),GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_WARNING,GTK_BUTTONS_YES_NO,"Do you really want to reset the specified user's data? Entrances & exits would reset.");
+	g_signal_connect(dialog,"response",G_CALLBACK(resetData1),data),
+	gtk_widget_show(dialog);
+	return;
+}
+static void resetData(GtkWidget *widget,gpointer data){
+	int n;
+	{
+		writeSerial("saved fingerprints");
+		char *s=readSerial(),tmp[3][12];
+		sscanf(s,"%s%s%s%i",tmp[0],tmp[1],tmp[2],&n),free(s);
+	}
+	if(!n){
+		GtkWidget *dialog=gtk_message_dialog_new(GTK_WINDOW(window),GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_INFO,GTK_BUTTONS_OK,"You can't use this feature because no fingerprints are available!");
+		gtk_widget_show(dialog);
+		return;
+	}
+	GtkWidget *grid=gtk_grid_new(),*label=gtk_label_new("Fingerprint ID"),*tempSpinbutton=gtk_spin_button_new(gtk_adjustment_new(1,1,n+1,1,1,1),1,0),*(tempButton[2])={gtk_button_new_with_label("Reset data"),gtk_button_new_with_label("Reset all data")};
+	initTempWindow("Reset data"),
+	gtk_widget_set_halign(grid,GTK_ALIGN_CENTER),
+	gtk_widget_set_valign(grid,GTK_ALIGN_CENTER),
+	g_signal_connect(tempButton[0],"clicked",G_CALLBACK(resetData0),tempSpinbutton),
+	g_signal_connect(tempButton[1],"clicked",G_CALLBACK(resetData2),NULL),
+	gtk_window_set_child(GTK_WINDOW(tempWindow),grid),
+	gtk_grid_attach(GTK_GRID(grid),label,0,0,2,1),
+	gtk_grid_attach(GTK_GRID(grid),tempSpinbutton,0,1,2,1),
+	gtk_grid_attach(GTK_GRID(grid),tempButton[0],0,2,1,1),
+	gtk_grid_attach(GTK_GRID(grid),tempButton[1],1,2,1,1),
+	gtk_window_present(GTK_WINDOW(tempWindow));
 	return;
 }
 static void savedFingerprints(GtkWidget *widget,gpointer data){
@@ -339,8 +380,8 @@ static void changeTime(GtkWidget *widget,gpointer data){
 static void attendanceTime0(GtkWidget *widget,gpointer data){
 	int n=gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(data));
 	char s[11],*s0;
-	writeSerial("attendance time"),free(readSerial()),sprintf(s,"%i",n),writeSerial(s),s0=readSerial();
-	GtkWidget *dialog=gtk_message_dialog_new(GTK_WINDOW(window),GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_INFO,GTK_BUTTONS_NONE,s0);
+	writeSerial("attendance time"),free(readSerial()),sprintf(s,"%i",n),writeSerial(s),s0=readSerial(),s0=strntmp(s0,strlen(s0)-1,1);
+	GtkWidget *dialog=gtk_message_dialog_new(GTK_WINDOW(tempWindow),GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_INFO,GTK_BUTTONS_NONE,"%s",s0);
 	free(s0),gtk_widget_show(dialog);
 	return;
 }
@@ -350,6 +391,11 @@ static void attendanceTime(GtkWidget *widget,gpointer data){
 		writeSerial("saved fingerprints");
 		char *s=readSerial(),tmp[3][12];
 		sscanf(s,"%s%s%s%i",tmp[0],tmp[1],tmp[2],&n),free(s);
+	}
+	if(!n){
+		GtkWidget *dialog=gtk_message_dialog_new(GTK_WINDOW(window),GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_INFO,GTK_BUTTONS_OK,"You can't use this feature because no fingerprints are available!");
+		gtk_widget_show(dialog);
+		return;
 	}
 	GtkWidget *box=gtk_box_new(GTK_ORIENTATION_VERTICAL,0),*label=gtk_label_new("Fingerprint ID"),*tempSpinbutton=gtk_spin_button_new(gtk_adjustment_new(1,1,n+1,1,1,1),1,0),*tempButton=gtk_button_new_with_label("Get data");
 	initTempWindow("Attendance time"),
@@ -363,6 +409,18 @@ static void attendanceTime(GtkWidget *widget,gpointer data){
 	gtk_window_present(GTK_WINDOW(tempWindow));
 	return;
 }
+static void resetAttendance3(GtkDialog *dialog,gint responseID, gpointer data){
+	if(responseID==GTK_RESPONSE_YES)
+		writeSerial("reset attendance"),free(readSerial()),writeSerial("0"),free(readSerial());
+	gtk_window_destroy(GTK_WINDOW(dialog));
+	return;
+}
+static void resetAttendance2(GtkWidget *widget,gpointer data){
+	GtkWidget *dialog=gtk_message_dialog_new(GTK_WINDOW(tempWindow),GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_WARNING,GTK_BUTTONS_YES_NO,"Are you sure you want to reset all users' attendance time? The time will be reset.");
+	g_signal_connect(dialog,"response",G_CALLBACK(resetAttendance3),NULL),
+	gtk_widget_show(dialog);
+	return;
+}
 static void resetAttendance1(GtkDialog *dialog,gint responseID, gpointer data){
 	if(responseID==GTK_RESPONSE_YES){
 		int n=gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(data));
@@ -373,7 +431,7 @@ static void resetAttendance1(GtkDialog *dialog,gint responseID, gpointer data){
 	return;
 }
 static void resetAttendance0(GtkWidget *widget,gpointer data){
-	GtkWidget *dialog=gtk_message_dialog_new(GTK_WINDOW(window),GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_WARNING,GTK_BUTTONS_YES_NO,"Are you sure you want to reset the specified user's attendance time? The time will be reset.");
+	GtkWidget *dialog=gtk_message_dialog_new(GTK_WINDOW(tempWindow),GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_WARNING,GTK_BUTTONS_YES_NO,"Are you sure you want to reset the specified user's attendance time? The time will be reset.");
 	g_signal_connect(dialog,"response",G_CALLBACK(resetAttendance1),data),
 	gtk_widget_show(dialog);
 	return;
@@ -385,15 +443,22 @@ static void resetAttendance(GtkWidget *widget,gpointer data){
 		char *s=readSerial(),tmp[3][12];
 		sscanf(s,"%s%s%s%i",tmp[0],tmp[1],tmp[2],&n),free(s);
 	}
-	GtkWidget *box=gtk_box_new(GTK_ORIENTATION_VERTICAL,0),*label=gtk_label_new("Fingerprint ID"),*tempSpinbutton=gtk_spin_button_new(gtk_adjustment_new(1,1,n+1,1,1,1),1,0),*tempButton=gtk_button_new_with_label("Reset data");
+	if(!n){
+		GtkWidget *dialog=gtk_message_dialog_new(GTK_WINDOW(window),GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_INFO,GTK_BUTTONS_OK,"You can't use this feature because no fingerprints are available!");
+		gtk_widget_show(dialog);
+		return;
+	}
+	GtkWidget *grid=gtk_grid_new(),*label=gtk_label_new("Fingerprint ID"),*tempSpinbutton=gtk_spin_button_new(gtk_adjustment_new(1,1,n+1,1,1,1),1,0),*(tempButton[2])={gtk_button_new_with_label("Reset data"),gtk_button_new_with_label("Reset all data")};
 	initTempWindow("Reset attendance time"),
-	gtk_widget_set_halign(box,GTK_ALIGN_CENTER),
-	gtk_widget_set_valign(box,GTK_ALIGN_CENTER),
-	g_signal_connect(tempButton,"clicked",G_CALLBACK(resetAttendance0),tempSpinbutton),
-	gtk_window_set_child(GTK_WINDOW(tempWindow),box),
-	gtk_box_append(GTK_BOX(box),label),
-	gtk_box_append(GTK_BOX(box),tempSpinbutton),
-	gtk_box_append(GTK_BOX(box),tempButton),
+	gtk_widget_set_halign(grid,GTK_ALIGN_CENTER),
+	gtk_widget_set_valign(grid,GTK_ALIGN_CENTER),
+	g_signal_connect(tempButton[0],"clicked",G_CALLBACK(resetAttendance0),tempSpinbutton),
+	g_signal_connect(tempButton[1],"clicked",G_CALLBACK(resetAttendance2),NULL),
+	gtk_window_set_child(GTK_WINDOW(tempWindow),grid),
+	gtk_grid_attach(GTK_GRID(grid),label,0,0,2,1),
+	gtk_grid_attach(GTK_GRID(grid),tempSpinbutton,0,1,2,1),
+	gtk_grid_attach(GTK_GRID(grid),tempButton[0],0,2,1,1),
+	gtk_grid_attach(GTK_GRID(grid),tempButton[1],1,2,1,1),
 	gtk_window_present(GTK_WINDOW(tempWindow));
 	return;
 }
