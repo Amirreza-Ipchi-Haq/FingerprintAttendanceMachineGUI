@@ -1,4 +1,5 @@
 #include<gtk/gtk.h>
+#include<stdio.h>
 #include"cstrcal.h"
 #include<time.h>
 char *port=0,isSerialOpen=0,isTempWindowOpen=0;
@@ -107,7 +108,6 @@ char *readSerial(){
 	return s;
 }
 #else
-#include<stdio.h>
 #include<fcntl.h>
 #include<unistd.h>
 #define SLEEP(s) usleep(s*1000)
