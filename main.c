@@ -1,6 +1,6 @@
 #include<gtk/gtk.h>
 #include<stdio.h>
-#include"cstrcal.h"
+#include"dynastr.h"
 #include<time.h>
 char *port=0,isSerialOpen=0,isTempWindowOpen=0;
 GtkWidget *window,*entry,*tempWindow,*(button[12]),*(spinbutton[6]);
@@ -47,7 +47,7 @@ void setup(){
 	}
 	{
 		char s[5]={port[0],port[1],port[2],port[3],0};
-		if(cmpstr(s,"\\\\.\\"))
+		if(strcmp(s,"\\\\.\\"))
 			port=strappend("\\\\.\\",port,1);
 	}
 	DCB dcbSerialParams={0};
@@ -91,14 +91,14 @@ void writeSerial(char *str){
 		error();
 }
 char *readSerial(){
-	char *s=strtmp("",0),c[1];
+	char *s=dynastr_strtmp("",0),c[1];
 	for(unsigned t=0;1;){
 		if(!ReadFile(serial,c,1,&bytesRead,NULL)){
 			free(s),error();
 			return strtmp("",0);
 		}
 		if(bytesRead)
-			t=0,s=strappend(s,CHR2STR(*c),2);
+			t=0,s=dynastr_strappend(s,DYNASTR_CHR2STR(*c),2);
 		else{
 			t++;
 			if(t>200)
@@ -131,7 +131,7 @@ void error(){
 	return;
 }
 void setup(){
-	char *cmd=strappend(strappend("stty -F ",port,0)," cs8 9600 ignbrk -brkint -icrnl -imaxbel -opost -onlcr -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke noflsh -ixon -crtscts",0);
+	char *cmd=dynastr_strappend(dynastr_strappend("stty -F ",port,0)," cs8 9600 ignbrk -brkint -icrnl -imaxbel -opost -onlcr -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke noflsh -ixon -crtscts",0);
 	system(cmd),free(cmd),serial=fopen(port,"r+");
 	if(!serial){
 		error();
@@ -145,10 +145,10 @@ void writeSerial(char *str){
 	return;
 }
 char *readSerial(){
-	char *s=strtmp("",0),c=getc(serial);
+	char *s=dynastr_strtmp("",0),c=getc(serial);
 	for(unsigned t=0;1;c=getc(serial)){
 		if(PRINTABLE(c))
-			t=0,s=strappend(s,CHR2STR(c),2);
+			t=0,s=dynastr_strappend(s,DYNASTR_CHR2STR(c),2);
 		else{
 			t++;
 			if(t>2000)
@@ -161,7 +161,7 @@ char *readSerial(){
 #endif
 GtkApplication *app;
 static void connect0(GtkWidget *widget,gpointer data){
-	error(),port=strtmp(gtk_editable_get_text(GTK_EDITABLE(entry)),0),setup();
+	error(),port=dynastr_strtmp(gtk_editable_get_text(GTK_EDITABLE(entry)),0),setup();
 	if(isSerialOpen)
 		writeSerial("help"),free(readSerial());
 	return;
@@ -184,7 +184,7 @@ static void attendeeList(GtkWidget *widget,gpointer data){
 	GtkTextBuffer *buffer=gtk_text_view_get_buffer(GTK_TEXT_VIEW(text));
 	writeSerial("attendee list");
 	char *s=readSerial();
-	s=strntmp(s,strlen(s)-1,1),
+	s=dynastr_strntmp(s,strlen(s)-1,1),
 	gtk_text_buffer_set_text(buffer,s,-1),
 	free(s),
 	gtk_text_view_set_editable(GTK_TEXT_VIEW(text),0),
@@ -290,7 +290,7 @@ static void savedFingerprints(GtkWidget *widget,gpointer data){
 	initTempWindow("Saved fingeprints"),
 	writeSerial("saved fingerprints");
 	char *s=readSerial();
-	s=strntmp(s,strlen(s)-1,1);
+	s=dynastr_strntmp(s,strlen(s)-1,1);
 	GtkWidget *box=gtk_box_new(GTK_ORIENTATION_VERTICAL,0),*text=gtk_label_new(s);
 	free(s);
 	{
@@ -311,7 +311,7 @@ static void showLog(GtkWidget *widget,gpointer data){
 	GtkTextBuffer *buffer=gtk_text_view_get_buffer(GTK_TEXT_VIEW(text));
 	writeSerial("show log");
 	char *s=readSerial();
-	s=strntmp(s,strlen(s)-1,1),
+	s=dynastr_strntmp(s,strlen(s)-1,1),
 	gtk_text_buffer_set_text(buffer,s,-1),
 	free(s),
 	gtk_text_view_set_editable(GTK_TEXT_VIEW(text),0),
@@ -380,7 +380,7 @@ static void changeTime(GtkWidget *widget,gpointer data){
 static void attendanceTime0(GtkWidget *widget,gpointer data){
 	int n=gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(data));
 	char s[11],*s0;
-	writeSerial("attendance time"),free(readSerial()),sprintf(s,"%i",n),writeSerial(s),s0=readSerial(),s0=strntmp(s0,strlen(s0)-1,1);
+	writeSerial("attendance time"),free(readSerial()),sprintf(s,"%i",n),writeSerial(s),s0=readSerial(),s0=dynastr_strntmp(s0,strlen(s0)-1,1);
 	GtkWidget *dialog=gtk_message_dialog_new(GTK_WINDOW(tempWindow),GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_INFO,GTK_BUTTONS_NONE,"%s",s0);
 	free(s0),gtk_widget_show(dialog);
 	return;
@@ -521,7 +521,7 @@ static void activate(GtkApplication *app,gpointer userData){
 }
 int main(int argc,char **argv){
 	init(),
-	app=gtk_application_new("com.github.Amirreza-Ipchi-Haq.FingerprintAttendanceMachineGUI",G_APPLICATION_DEFAULT_FLAGS);
+	app=gtk_application_new("com.github.Amirreza-Ipchi-Haq.FingerprintAttendanceMachineGUI",G_APPLICATION_DEFAULT_FLAGS),
 	g_signal_connect(app,"activate",G_CALLBACK(activate),NULL);
 	int status=g_application_run(G_APPLICATION(app),argc,argv);
 	g_object_unref(app);
