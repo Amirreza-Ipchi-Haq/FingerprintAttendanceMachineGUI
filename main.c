@@ -20,7 +20,7 @@ void enable(char condition){
 }
 #ifdef _WIN32
 #include<windows.h>
-#define SLEEP(s) sleep(s)
+#define SLEEP(s) Sleep(s)
 HANDLE serial;
 DWORD bytesWritten,bytesRead;
 void init(){
@@ -48,7 +48,7 @@ void setup(){
 	{
 		char s[5]={port[0],port[1],port[2],port[3],0};
 		if(strcmp(s,"\\\\.\\"))
-			port=strappend("\\\\.\\",port,1);
+			port=dynastr_strappend("\\\\.\\",port,1);
 	}
 	DCB dcbSerialParams={0};
 	COMMTIMEOUTS timeouts={0};
@@ -95,7 +95,7 @@ char *readSerial(){
 	for(unsigned t=0;1;){
 		if(!ReadFile(serial,c,1,&bytesRead,NULL)){
 			free(s),error();
-			return strtmp("",0);
+			return dynastr_strtmp("",0);
 		}
 		if(bytesRead)
 			t=0,s=dynastr_strappend(s,DYNASTR_CHR2STR(*c),2);

@@ -1,7 +1,7 @@
 CC=gcc
 EDIT=vi
 ICON=icon.ico
-REQUIREMENTS=requirements.txt
+REQUIREMENTS=Requirements.txt
 SRC=main.c
 TARGET=FingerprintAttendanceMachineGUI
 WINDRES=windres
