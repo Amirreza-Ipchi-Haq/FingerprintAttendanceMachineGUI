@@ -40,7 +40,6 @@ edit:
 	${EDIT} ${SRC}
 fetch:
 	git fetch
-	curl https://raw.githubusercontent.com/Amirreza-Ipchi-Haq/cstrcal/refs/heads/main/cstrcal.h>cstrcal.h
 	curl https://raw.githubusercontent.com/Amirreza-Ipchi-Haq/dynastr/refs/heads/main/dynastr.h>dynastr.h
 push:
 	git push

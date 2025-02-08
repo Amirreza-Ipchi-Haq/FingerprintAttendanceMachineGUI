@@ -6,7 +6,7 @@
 char* dynastr_strtmp(char* s,const char release){//Assign a function which creates a temporary string (Same as `strdup` with memory management included)
 	if(!s)//(The string is NULL)
 		return NULL;//Return NULL
-	char *s0=malloc((strlen(s)+1)*sizeof(char));//Allocate memory as much as the length of the string (until NUL) plus one more byte for NUL
+	char *s0=malloc(strlen(s)+1);//Allocate memory as much as the length of the string (until NUL) plus one more byte for NUL
 	strcpy(s0,s);//Copy string content to the new string
 	if(release)//Free the old string if told to
 		free(s);
