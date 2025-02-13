@@ -24,7 +24,22 @@ compileOSX:
 	strip ${TARGET}OSX
 	tar xzf Template.tar.gz
 	cp `otool -L ${TARGET}OSX|cut -d ' ' -f 1|tail -n +2|sed /libSystem.B.dylib/d` ${TARGET}OSX.app/Contents/Frameworks
+	for i in `ls ${TARGET}OSX.app/Contents/Frameworks`;do\
+		install_name_tool -change `otool -L ${TARGET}OSX|cut -d ' ' -f 1|tail -n +2|grep $$i` @executable_path/../Frameworks/$$i ${TARGET}OSX;\
+	done
 	mv ${TARGET}OSX ${TARGET}OSX.app/Contents/MacOS
+	str="NULL"
+	while test "$$str" != "`find ${TARGET}OSX.app/Contents/Frameworks|tail -n +2`";do\
+		str="`find ${TARGET}OSX.app/Contents/Frameworks|tail -n +2`";\
+		for i in `otool -L ${TARGET}OSX.app/Contents/Frameworks/*|cut -d ' ' -f 1|sed '/:/d'`;do\
+			ls ${TARGET}OSX.app/Contents/Frameworks/`echo $$i|rev|cut -d / -f 1|rev` &>/dev/null||cp $$i ${TARGET}OSX.app/Contents/Frameworks 2>/dev/null||true;\
+		done;\
+	done
+	for i in `find ${TARGET}OSX.app/Contents/Frameworks|tail -n +2`;do\
+		for j in `otool -L $$i|cut -d ' ' -f 1|tail -n +2`;do\
+			ls ${TARGET}OSX.app/Contents/Frameworks/`echo $$j|rev|cut -d / -f 1|rev` &>/dev/null&&install_name_tool -change $$j @executable_path/../Frameworks/`echo $$j|rev|cut -d / -f 1|rev` $$i||true;\
+		done;\
+	done
 compileWindows:
 	echo 'MAINICON ICON "${ICON}"'>resource.rc
 	${WINDRES} -O coff -o resource.res resource.rc
@@ -40,7 +55,7 @@ edit:
 	${EDIT} ${SRC}
 fetch:
 	git fetch
-	curl https://raw.githubusercontent.com/Amirreza-Ipchi-Haq/dynastr/refs/heads/main/dynastr.h>dynastr.h
+	curl https://raw.githubusercontent.com/Amirreza-Ipchi-Haq/strcal/refs/heads/main/C/cstrcal.h>cstrcal.h
 push:
 	git push
 run:
